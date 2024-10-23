@@ -37,7 +37,7 @@ def emojis():
 
 # Configuration Key
 firebaseConfig = {
-    "apiKey": st.secrets["auth_key"],
+    "apiKey": st.secrets["auth_token"],
     "authDomain": "cacapp-d3eaa.firebaseapp.com",
     "databaseURL": "https://cacapp-d3eaa-default-rtdb.firebaseio.com",
     "projectId": "cacapp-d3eaa",
@@ -198,7 +198,7 @@ else:
 
 
 # OpenAI API Key
-api_key = st.secrets["auth_key2"]
+api_key = st.secrets["auth_token2"]
 
 
 
