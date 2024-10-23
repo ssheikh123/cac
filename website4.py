@@ -1410,7 +1410,7 @@ with content_placeholder.container():
                 except Exception as e:
                     st.markdown(f"""
                     <div style="color: black; background-color: #f5b227; padding: 10px; border: 1px solid #ffeeba; border-radius: 5px;">
-                        <strong>Error saving: {str(e)}. Make sure to Log In!</strong>
+                        <strong>Make sure to log in!</strong>
                     </div>
                     """, unsafe_allow_html=True)
 
