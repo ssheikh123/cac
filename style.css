@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@500&display=swap');
+html, body, [class*="css"] {
+    font-size: 18px;
+    color: #091747;
+    font-family: "Rethink Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+}
+
+
+
+
+/* Set white background */
+.main {
+    background-color: #ffe6bfff !important;
+    font-size: 18px;
+    color: #091747;
+    font-family: "Rethink Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+}
+p {
+    color: #ffffff !important;  /* Light blue color for headers */
+    font-family: "Rethink Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+}
+/* Style headers with light blue text */
+h4, h5, h6 {
+    color: #101010 !important;  /* Light blue color for headers */
+    font-family: "Rethink Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 1000;
+    font-style: normal;
+}
+
+
+h1, h2, h3 {
+    color: #363636 !important;  /* Light blue color for headers */
+    font-family: "Rethink Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 1000;
+    font-style: normal;
+}
+
+
+
+
+/* Style buttons */
+.stButton>button {
+    background-color: #f9ae36ff !important;
+    color: #FFFFFF !important;  /* White text color for buttons */
+    border-radius: 8px;
+    padding: 10px 20px;
+    width: 200px; /* Adjust the width as needed */
+    text-align: center; /* Center the text */    }
+ 
+
+
+       
+/* Button hover effect */
+.stButton>button:hover {
+    background-color: #ff3791ff !important;
+}
