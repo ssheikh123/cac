@@ -20,8 +20,18 @@ from streamlit_extras.let_it_rain import rain
 
 
 
+
+
+
+
+
+
+
+
 with open("style.css") as css:
     st.markdown( f'<style>{css.read()}</style>' , unsafe_allow_html= True)
+
+
 
 
 def emojis():
@@ -35,7 +45,11 @@ def emojis():
 
 
 
-#Configuration Key
+
+
+
+
+# Configuration Key
 firebaseConfig = {
     "apiKey": st.secrets["auth_key"],
     "authDomain": "cacapp-d3eaa.firebaseapp.com",
@@ -50,9 +64,17 @@ firebaseConfig = {
 
 
 
-#Firebase Authentication
+
+
+
+
+# Firebase Authentication
 firebase = pyrebase.initialize_app(firebaseConfig)
 auth = firebase.auth()
+
+
+
+
 
 
 
@@ -63,21 +85,61 @@ if 'daily_schedule' not in st.session_state:
 
 
 
-#Database
+
+
+
+
+# Database
 db = firebase.database()
 storage = firebase.storage()
 st.sidebar.image("https://i.imgur.com/QagqWUy.png", width=150)
 
+
+
+
+
+
+
+
 is_logged_in = False
 
-#Function to set a value in Firebase instead of session state
+
+
+
+
+
+
+
+# Authentication
+#choice = st.sidebar.selectbox('Login/Signup', ['Login', 'Sign up'])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Function to set a value in Firebase instead of session state
 def set_firebase_state(user_id, key, value):
     db.child(user_id).child("app_state").child(key).set(value)
 
 
 
 
-#Function to get a value from Firebase
+
+
+
+
+# Function to get a value from Firebase
 def get_firebase_state(user_id, key, default_value=None):
     result = db.child(user_id).child("app_state").child(key).get().val()
     return result if result else default_value
@@ -85,28 +147,41 @@ def get_firebase_state(user_id, key, default_value=None):
 
 
 
+
+
+
+
 success_placeholder = st.empty()
 
-#Function to handle page navigation and clearing content
+
+# Function to handle page navigation and clearing content
 def switch_page(new_page):
     st.session_state.page = new_page
-    content_placeholder.empty()  #Clear any previous content
+    content_placeholder.empty()  # Clear any previous content
+
+
 
 
 if not is_logged_in:
-    #Show the login/signup form inside an expander
+    # Show the login/signup form inside an expander
     with st.sidebar.expander("Login/Signup", expanded=True):
         choice = st.selectbox('', ['Login', 'Sign up'])
 
 
-        #Obtain User Input for email and password
+
+
+        # Obtain User Input for email and password
         email = st.text_input('Email address')
         password = st.text_input('Password', type='password')
+
+
 
 
         if choice == 'Sign up':
             handle = st.text_input('Username', value='Default')
             submit = st.button('Create my account!')
+
+
 
 
             if submit:
@@ -121,6 +196,8 @@ if not is_logged_in:
                     st.error(f"Error: {str(e)}")
 
 
+
+
         if choice == 'Login':
             login = st.checkbox('Login')
             if login:
@@ -128,7 +205,7 @@ if not is_logged_in:
                     user = auth.sign_in_with_email_and_password(email, password)
                     user_id = user['localId']
                     user_token = user['idToken']
-                    is_logged_in = True  
+                    is_logged_in = True  # Set the login status to True
                     st.sidebar.success("Logged in successfully!")
                 except Exception as e:
                     st.error(f"Login failed: {str(e)}")
@@ -138,7 +215,7 @@ if not is_logged_in:
                 else:
                     st.session_state['handle'] = "ExampleHandle"
 else:
-    #Sidebar buttons for the different pages
+    # Sidebar buttons for the different pages
     if st.sidebar.button("Dashboard"):
         switch_page("Dashboard")
     if st.sidebar.button("Diary"):
@@ -149,6 +226,10 @@ else:
         switch_page("Recipes")
     if st.sidebar.button("Profile"):
         switch_page("Profile")
+
+
+
+
 
 
 
@@ -159,8 +240,14 @@ content_placeholder = st.empty()
 
 
 
+
+
+
+
+
 if is_logged_in:
-    #Display all tabs only if the user is logged in
+    # Display all tabs only if the user is logged in
+    #st.sidebar.write("Logged in successfully!")
     if st.sidebar.button("Dashboard"):
         switch_page("Dashboard")
     if st.sidebar.button("Diary"):
@@ -172,7 +259,7 @@ if is_logged_in:
     if st.sidebar.button("Profile"):
         switch_page("Profile")
 else:
-    #If not logged in, restrict access to Profile only
+    # If not logged in, restrict access to Profile only
     st.sidebar.write("Now, log in with your new info to use the app.")
     st.sidebar.button("Profile")
     st.session_state.page = "Profile"
@@ -180,39 +267,59 @@ else:
 
 
 
-#OpenAI API Key
+
+
+
+
+# OpenAI API Key
 api_key = st.secrets["auth_key2"]
 
 
 
 
+
+
+
+
 if "page" not in st.session_state:
-    st.session_state.page = "Profile"  #Set the default page
+    st.session_state.page = "Profile"  # Set the default page
 if "image_analyzed" not in st.session_state:
     st.session_state["image_analyzed"] = False
 
 
 
 
+
+
+
+
     #FOR SAVING RECIPES:
-#Define the file path for saving recipes
+# Define the file path for saving recipes
 RECIPE_FILE = "saved_recipes.txt"
 
 
 
 
-#Ensure the file exists or create it if it doesn't
+
+
+
+
+# Ensure the file exists or create it if it doesn't
 def initialize_recipe_file():
     if not os.path.exists(RECIPE_FILE):
         with open(RECIPE_FILE, "w") as f:
-            json.dump({}, f)  #Initialize with an empty dictionary
+            json.dump({}, f)  # Initialize with an empty dictionary
 
 
 
 
-#Function to load saved recipes from the text file
+
+
+
+
+# Function to load saved recipes from the text file
 def load_saved_recipes():
-    initialize_recipe_file()  #Ensure file exists
+    initialize_recipe_file()  # Ensure file exists
     with open(RECIPE_FILE, "r") as f:
         saved_recipes = json.load(f)
         st.session_state["saved_recipes"] = saved_recipes
@@ -220,7 +327,11 @@ def load_saved_recipes():
 
 
 
-#Function to save the current state of recipes to the text file
+
+
+
+
+# Function to save the current state of recipes to the text file
 def save_recipe_to_file():
     with open(RECIPE_FILE, "w") as f:
         json.dump(st.session_state["saved_recipes"], f)
@@ -228,23 +339,31 @@ def save_recipe_to_file():
 
 
 
-#Function to add a new recipe to the saved list
+
+
+
+
+# Function to add a new recipe to the saved list
 def save_recipe(api_response):
-    #Ensure saved recipes state exists
+    # Ensure saved recipes state exists
     if "saved_recipes" not in st.session_state:
         st.session_state["saved_recipes"] = {}
    
-    #Get the current count of saved recipes
+    # Get the current count of saved recipes
     recipe_count = len(st.session_state["saved_recipes"]) + 1
-    #Add new recipe to the dictionary with a numeric key
+    # Add new recipe to the dictionary with a numeric key
     st.session_state["saved_recipes"][str(recipe_count)] = api_response
-    #Save updated recipes to file
+    # Save updated recipes to file
     save_recipe_to_file()
 
 
 
 
-#Function to display saved recipes as a dropdown
+
+
+
+
+# Function to display saved recipes as a dropdown
 def display_saved_recipes():
     if st.session_state["saved_recipes"]:
         for key, recipe in st.session_state["saved_recipes"].items():
@@ -256,22 +375,30 @@ def display_saved_recipes():
 
 
 
-#Initialize session state for tracking saved recipes
+
+
+
+
+# Initialize session state for tracking saved recipes
 if "saved_recipes" not in st.session_state:
-    load_saved_recipes()  #Load recipes if they aren't already in session state
+    load_saved_recipes()  # Load recipes if they aren't already in session state
+
+
+
+
 
 
 
 
 def calculate_bmr(age, height, weight, gender, activity_level):
     if gender == "Male":
-        #BMR calculation for men
+        # BMR calculation for men
         bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
     else:
-        #BMR calculation for women
+        # BMR calculation for women
         bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
    
-    #Adjust BMR based on activity level
+    # Adjust BMR based on activity level
     activity_multipliers = {
         "Sedentary": 1.2,
         "Lightly active": 1.375,
@@ -283,18 +410,30 @@ def calculate_bmr(age, height, weight, gender, activity_level):
 
 
 
-    return bmr * activity_multipliers.get(activity_level, 1.2)  #Default to Sedentary if activity level is not found
+
+
+
+
+    return bmr * activity_multipliers.get(activity_level, 1.2)  # Default to Sedentary if activity level is not found
+
+
+
+
 
 
 
 
 def calculate_protein(weight):
-    return weight * 0.85  #Return protein in grams
+    return weight * 0.85  # Return protein in grams
 
 
 
 
-#Function to send food item to GPT and return nutrition info
+
+
+
+
+# Function to send food item to GPT and return nutrition info
 def send_food_to_gpt(food_item):
     payload = {
         "model": "gpt-4o-mini",
@@ -310,10 +449,18 @@ def send_food_to_gpt(food_item):
 
 
 
+
+
+
+
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
+
+
+
+
 
 
 
@@ -323,10 +470,15 @@ def send_food_to_gpt(food_item):
 
 
 
+
+
+
+
     if response.status_code == 200:
         response_data = response.json()
         api_content = response_data['choices'][0]['message']['content']
-        #Log the raw API response to check its format
+        # Log the raw API response to check its format
+        # st.write(f"API Response for {food_item}: {api_content}")
         return api_content
     else:
         st.markdown(f"""
@@ -339,7 +491,11 @@ def send_food_to_gpt(food_item):
 
 
 
-#Function to log to file and update totals
+
+
+
+
+# Function to log to file and update totals
 def log_to_file_and_update_totals(api_response):
    
     today = datetime.now().strftime('%Y-%m-%d')
@@ -348,7 +504,11 @@ def log_to_file_and_update_totals(api_response):
 
 
 
-    #Initialize daily totals in session state if not present
+
+
+
+
+    # Initialize daily totals in session state if not present
     if "daily_totals" not in st.session_state:
         st.session_state["daily_totals"] = {
             'calories': 0, 'sugar': 0, 'fat': 0, 'protein': 0,
@@ -359,62 +519,102 @@ def log_to_file_and_update_totals(api_response):
 
 
 
+
+
+
+
     totals = st.session_state["daily_totals"]
 
 
 
 
-    #Clear previous API response to avoid duplicate logging
+
+
+
+
+    # Clear previous API response to avoid duplicate logging
     food_items = [item for item in api_response.split('\n') if item.strip()]
 
 
 
 
-    #Open the file in append mode and log each food item
+
+
+
+
+    # Open the file in append mode and log each food item
     with open(filename, 'a') as file:
         for item in food_items:
-            file.write(item + "\n")  #Log the item in the file
+            file.write(item + "\n")  # Log the item in the file
+
+
+
+
 
 
 
 
             parts = item.split(',')
-            if len(parts) >= 10:  #Ensure there are enough parts in the item
+            if len(parts) >= 10:  # Ensure there are enough parts in the item
                 try:
-                    #Parse and update each nutritional value, stripping units where necessary
-                    calories = int(parts[1].strip())  #Calories is already a number
+                    # Parse and update each nutritional value, stripping units where necessary
+                    calories = int(parts[1].strip())  # Calories is already a number
                     totals['calories'] += calories
 
 
 
 
-                    sugar = float(parts[2].strip('g'))  #Remove 'g' from the sugar value
+
+
+
+
+                    sugar = float(parts[2].strip('g'))  # Remove 'g' from the sugar value
                     totals['sugar'] += sugar
 
 
 
 
-                    fat = float(parts[3].strip('g'))  #Remove 'g' from the fat value
+
+
+
+
+                    fat = float(parts[3].strip('g'))  # Remove 'g' from the fat value
                     totals['fat'] += fat
 
 
 
 
-                    protein = float(parts[4].strip('g'))  #Remove 'g' from the protein value
+
+
+
+
+                    protein = float(parts[4].strip('g'))  # Remove 'g' from the protein value
                     totals['protein'] += protein
 
 
 
 
-                    carbohydrates = float(parts[5].strip('g'))  #Remove 'g' from the carbs value
+
+
+
+
+                    carbohydrates = float(parts[5].strip('g'))  # Remove 'g' from the carbs value
                     totals['carbohydrates'] += carbohydrates
 
 
 
 
-                    #Check for optional nutritional values, stripping units where necessary
+
+
+
+
+                    # Check for optional nutritional values, stripping units where necessary
                     vitamin_d = float(parts[6].strip('IU')) if len(parts) > 6 else 0
                     totals['vitamin_d'] += vitamin_d
+
+
+
+
 
 
 
@@ -425,8 +625,16 @@ def log_to_file_and_update_totals(api_response):
 
 
 
+
+
+
+
                     iron = float(parts[8].strip('mg')) if len(parts) > 8 else 0
                     totals['iron'] += iron
+
+
+
+
 
 
 
@@ -437,7 +645,11 @@ def log_to_file_and_update_totals(api_response):
 
 
 
-                    #Append the food item and its macros to the daily schedule
+
+
+
+
+                    # Append the food item and its macros to the daily schedule
                     for item_log in st.session_state.daily_schedule:
                         if item_log['food_item'] == parts[0].strip():
                             item_log['macros'] = f"""
@@ -452,6 +664,10 @@ def log_to_file_and_update_totals(api_response):
 
 
 
+
+
+
+
                     st.markdown(f"""
                     <div style="color: black; background-color: #f5b227; padding: 10px; border: 1px solid #ffeeba; border-radius: 5px;">
                         <strong>Error: {log_message}</strong>
@@ -461,8 +677,16 @@ def log_to_file_and_update_totals(api_response):
 
 
 
+
+
+
+
             else:
                 log_message = f"Incomplete data for item: {item}"
+
+
+
+
 
 
 
@@ -476,13 +700,21 @@ def log_to_file_and_update_totals(api_response):
 
 
 
-#Path to the calorie log file
+
+
+
+
+# Path to the calorie log file
 calorie_file_path = "calorie_log.txt"
 
 
 
 
-#Function to read the daily calorie data from the file
+
+
+
+
+# Function to read the daily calorie data from the file
 def read_calorie_log():
     if not os.path.exists(calorie_file_path):
         return {}
@@ -497,10 +729,18 @@ def read_calorie_log():
 
 
 
-#Function to write daily calories at the end of the day
+
+
+
+
+# Function to write daily calories at the end of the day
 def write_calorie_log(date, calories):
     with open(calorie_file_path, 'a') as f:
         f.write(f"{date}: {calories}\n")
+
+
+
+
 
 
 
@@ -512,25 +752,38 @@ def update_daily_calories(calories):
 
 
 
-#Function to generate a calendar heatmap
+
+
+
+
+# Function to generate a calendar heatmap
+# Function to generate a calendar heatmap
 def plot_calendar(calorie_data, calorie_goal):
-    #Get current month and year
+     # Get current month and year
     today = datetime.today()
     year, month = today.year, today.month
 
 
 
 
-    #Get month name
+
+
+
+
+    # Get month name
     month_name = calendar.month_name[month]
    
-    #Generate the calendar for the current month
+    # Generate the calendar for the current month
     cal = calendar.monthcalendar(year, month)
 
 
 
 
-    #Prepare a figure and axis for the calendar plot
+
+
+
+
+    # Prepare a figure and axis for the calendar plot
     fig, ax = plt.subplots(figsize=(10, 7))
     fig.patch.set_facecolor('#ffe6bfff')
     ax.set_title(f"{month_name} {year}", fontsize=20, pad=20)
@@ -538,35 +791,43 @@ def plot_calendar(calorie_data, calorie_goal):
 
 
 
-    #Define color mapping based on deviation
+
+
+
+
+    # Define color mapping based on deviation
     def get_color(calories, goal):
         if calories is None:
-            return 'white'  #Default color if no data
+            return 'white'  # Default color if no data
        
-        #Calculate the deviation as a fraction
+        # Calculate the deviation as a fraction
         deviation = abs(calories - goal) / goal
        
-        #Apply a non-linear scaling to make color change more intense
+        # Apply a non-linear scaling to make color change more intense
         deviation = min(deviation * 2, 1)
        
-        #Use the RdYlGn colormap (reversed, so closer to the goal is green)
-        color = plt.cm.RdYlGn(1 - deviation)  #`1 - deviation` ensures that lower deviations are greener
+        # Use the RdYlGn colormap (reversed, so closer to the goal is green)
+        color = plt.cm.RdYlGn(1 - deviation)  # `1 - deviation` ensures that lower deviations are greener
         return color
 
 
 
 
-    #Create the calendar plot
+
+
+
+
+    # Create the calendar plot
     for week_idx, week in enumerate(cal):
         for day_idx, day in enumerate(week):
             if day == 0:
-                #Empty cell for days outside the current month
+                # Empty cell for days outside the current month
                 color = 'white'
                 text = ""
             else:
-                #Format the date string
+                # Format the date string
                 date_str = f"{year}-{month:02d}-{day:02d}"
-                #Fetch the calorie log for the day, if available
+                # Fetch the calorie log for the day, if available
                 calories = calorie_data.get(date_str)
                 color = get_color(calories, calorie_goal)
                 text = str(day)
@@ -574,7 +835,11 @@ def plot_calendar(calorie_data, calorie_goal):
 
 
 
-            #Calculate the position of the box for the day
+
+
+
+
+            # Calculate the position of the box for the day
             x = day_idx
             y = -week_idx
             ax.add_patch(plt.Rectangle((x, y), 1, 1, color=color, edgecolor='black'))
@@ -582,27 +847,43 @@ def plot_calendar(calorie_data, calorie_goal):
 
 
 
-            #Add the text (day number) in the middle of the box
+
+
+
+
+            # Add the text (day number) in the middle of the box
             ax.text(x + 0.5, y - 0.5, text, ha='center', va='center', fontsize=12)
 
 
 
 
-    #Set x and y limits to fit the calendar grid
+
+
+
+
+    # Set x and y limits to fit the calendar grid
     ax.set_xlim(0, 7)
     ax.set_ylim(-len(cal), 0)
 
 
 
 
-    #Hide axis ticks and labels
+
+
+
+
+    # Hide axis ticks and labels
     ax.set_xticks([])
     ax.set_yticks([])
 
 
 
 
-    #Display the calendar plot in Streamlit
+
+
+
+
+    # Display the calendar plot in Streamlit
     st.pyplot(fig)
    
 def plot_donut_chart(calories_consumed, calorie_goal):
@@ -611,24 +892,36 @@ def plot_donut_chart(calories_consumed, calorie_goal):
 
 
 
-    #Data for the chart
+
+
+
+
+    # Data for the chart
     labels = [f'Consumed Calories\n({calories_consumed} kcal)',
               f'Remaining Calories\n({remaining_calories} kcal)']
     sizes = [calories_consumed, remaining_calories]
     colors = ['#f9ae36ff', '#555555']
-    explode = (0.1, 0)  #only "explode" the first slice
+    explode = (0.1, 0)  # only "explode" the first slice
 
 
 
 
-    #Create the donut chart
+
+
+
+
+    # Create the donut chart
     plt.figure(figsize=(6, 6))
     plt.pie(sizes, colors=colors, labels=labels, autopct='%1.1f%%', startangle=90, explode=explode, pctdistance=0.85)
 
 
 
 
-    #Draw a circle at the center of the pie to make it a donut
+
+
+
+
+    # Draw a circle at the center of the pie to make it a donut
     centre_circle = plt.Circle((0, 0), 0.50, fc='#ffe6bfff')
     fig = plt.gcf()
     fig.gca().add_artist(centre_circle)
@@ -636,15 +929,31 @@ def plot_donut_chart(calories_consumed, calorie_goal):
 
 
 
+
+
+
+
     fig.patch.set_facecolor('#ffe6bfff')
-    #Adding title
+    # Adding title
     plt.title('Daily Calories Intake')
 
 
 
 
-    #Display the chart
+
+
+
+
+    # Display the chart
     st.pyplot(fig)
+
+
+
+
+
+
+
+
 
 
 
@@ -663,11 +972,18 @@ if "daily_totals" not in st.session_state:
 
 
 
-#Check which page to display
+
+
+
+
+# Check which page to display
 with content_placeholder.container():
     if st.session_state.page == "Dashboard":
             st.title("Nutrition Dashboard")
-            
+           
+
+
+
 
 
 
@@ -676,11 +992,15 @@ with content_placeholder.container():
 
 
 
-            #Display the calorie ring
+
+
+
+
+            # Display the calorie ring
             st.header(f"{st.session_state['handle']}, here's your caloric intake today:")
             calorie_goal = st.session_state.get('calorie_goal', 2000)
             if not calorie_goal:
-                #Fetch the calorie goal from Firebase if not in session
+                # Fetch the calorie goal from Firebase if not in session
                 profile = db.child(user_id).child("profile").get().val()
                 if profile and "calorie_goal" in profile:
                     calorie_goal = profile["calorie_goal"]
@@ -690,41 +1010,52 @@ with content_placeholder.container():
 
 
 
-            #Daily Schedule Section
+
+
+
+
+            # Daily Schedule Section
             st.header("Log Food")
 
-    
+
+   
 
 
-            #Input to log food items and time
+
+
+            # Input to log food items and time
             food_item = st.text_input(":gray[Food Item]")
             time_consumed = st.time_input(":gray[What time did you consume this?]")
            
+
+
 
 
             if st.button("Log Food Item"):
                 if food_item:
                     new_log = {'time': time_consumed.strftime("%H:%M"), 'food_item': food_item}
                    
-                    #Append and sort by time
+                    # Append and sort by time
                     st.session_state.daily_schedule.append(new_log)
                     st.session_state.daily_schedule.sort(key=lambda x: x['time'])
                    
-                    #Send food item to GPT for analysis
+                    # Send food item to GPT for analysis
                     gpt_response = send_food_to_gpt(food_item)
                     if gpt_response:
-                        #Log and update totals
+                        # Log and update totals
                         log_to_file_and_update_totals(gpt_response)
                        
-                        #Update the log message
+                        # Update the log message
                         log_message = "Logged: " + food_item + " at " + time_consumed.strftime('%H:%M')
                    
                
 
 
+
+
                        
                 else:
-                    #CSS to style the expander headers and content properly
+                    # CSS to style the expander headers and content properly
                     st.markdown("""
                         <style>
                         /* Styling for the expander header */
@@ -751,21 +1082,27 @@ with content_placeholder.container():
                
 
 
+
+
             st.header("What I Ate Today:")
             st.write(":gray[(Click food item to expand nutritional information.)]")
             if st.session_state.daily_schedule:
                 for item in st.session_state.daily_schedule:
                     food_name = item['food_item']
                     food_time = item['time']
-                    macros = item.get('macros', '')  #Get macros if available
+                    macros = item.get('macros', '')  # Get macros if available
 
 
 
 
-                    #Create an expander for each food item to show macros on click
+
+
+
+
+                    # Create an expander for each food item to show macros on click
                     with st.expander(f":gray[{food_name} at {food_time}]"):
                         if macros:
-                            #Write the macros with proper styling
+                            # Write the macros with proper styling
                             st.write(f'<p style="color: #3399FF;">{macros}</p>', unsafe_allow_html=True)
                         else:
                             st.write(":gray[No detailed macros available yet.]")
@@ -775,150 +1112,44 @@ with content_placeholder.container():
 
 
 
-    #For the camera tab        
+
+
+
+
+    # For the camera tab        
     elif st.session_state.page == "Camera":
-            st.subheader(":gray[Take a picture of your food:]")
-            #Initialize session state for capturing the photo and tracking totals
-            if "photo_taken" not in st.session_state:
-                st.session_state["photo_taken"] = False
-            if "photo" not in st.session_state:
-                st.session_state["photo"] = None
-            if "take_photo_clicked" not in st.session_state:
-                st.session_state["take_photo_clicked"] = False
-            if "return_to_camera" not in st.session_state:
-                st.session_state["return_to_camera"] = False
-            if "api_response" not in st.session_state:
-                st.session_state["api_response"] = None
+        st.subheader(":gray[Take a picture of your food:]")
+       
+        # Initialize session state for tracking totals and responses
+        if "photo" not in st.session_state:
+            st.session_state["photo"] = None
+        if "api_response" not in st.session_state:
+            st.session_state["api_response"] = None
 
 
+        # Use Streamlit's built-in camera input
+        st.session_state["photo"] = st.camera_input("Capture an image")
 
 
+        # Check if a photo was taken
+        if st.session_state["photo"]:
+            st.image(st.session_state["photo"], caption="Captured Image")
 
 
-
-
-            if "daily_totals" not in st.session_state:
-                    st.session_state["daily_totals"] = {
-                        'calories': 0, 'sugar': 0, 'fat': 0, 'protein': 0,
-                        'carbohydrates': 0, 'vitamin_d': 0, 'calcium': 0,
-                        'iron': 0, 'potassium': 0
-                    }
-
-
-
-
-
-
-
-
-            #Function to encode the image to base64
+            # Convert the image to bytes and encode it to base64
             def encode_image(image):
-                _, buffer = cv2.imencode('.jpg', image)
-                return base64.b64encode(buffer).decode('utf-8')
+                return base64.b64encode(image.read()).decode('utf-8')
 
 
+            base64_image = encode_image(st.session_state["photo"])
 
 
-
-
-
-
-            #Function to open the camera and display the preview
-            def live_camera_preview():
-                cap = cv2.VideoCapture(1)
-                frame_placeholder = st.empty()  #Placeholder for the video stream
-
-
-
-
-
-
-
-
-                #Create the "Take Photo" button outside the loop
-                take_photo_button = st.button("Take Photo")
-           
-                while True:
-                    ret, frame = cap.read()
-                    if not ret:
-
-
-
-
-                        st.markdown("""
-                        <div style="color: black; background-color: #f5b227; padding: 10px; border: 1px solid #ffeeba; border-radius: 5px;">
-                            <strong>Error: Could not get frame from the camera.</strong>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-
-
-
-                        break
-
-
-
-
-
-
-
-
-                    #Convert the frame to RGB (OpenCV uses BGR)
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-
-
-
-
-
-
-
-                    #Display the frame in the placeholder
-                    frame_placeholder.image(frame_rgb, channels="RGB")
-
-
-
-
-
-
-
-
-                    if take_photo_button:
-                        st.session_state["photo"] = frame_rgb  #Save the captured frame
-                        st.session_state["photo_taken"] = True
-                        st.session_state["return_to_camera"] = True
-                        cap.release()
-                        frame_placeholder.empty()  #Clear the live feed
-                        break
-
-
-
-
-
-
-
-
-            #Function to send the image to the OpenAI API for analysis
-            def send_image_to_openai(image):
-                base64_image = encode_image(image)
-
-
-
-
-
-
-
-
+            # Function to send the image to the OpenAI API for analysis
+            def send_image_to_openai(image_base64):
                 headers = {
                     "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}"
+                    "Authorization": f"Bearer {st.secrets['auth_key2']}"
                 }
-
-
-
-
-
-
 
 
                 payload = {
@@ -929,12 +1160,12 @@ with content_placeholder.container():
                             "content": [
                                 {
                                     "type": "text",
-                                    "text": "Here is a picture of food. Return only a string of comma separated values based on an approximate serving size estimate. If there are multiple food items, return multiple strings. follow this format: Food item (include brand if applicable) (string), calories (int), sugar, fat, protein, carbohydrates, vitamin D, calcium, iron, postassium. DO NOT INCLUDE UNITS, ONLY NUMBERS. If there is no observable food in the picture, respond with No food detected. Here is an example of a response: Yogurt, all its nutrition info \n Jelly Beans, all its nutrition info You should return nothing else besides these strings."
+                                    "text": "Here is a picture of food. Return a string of comma-separated values based on an approximate serving size estimate. If there are multiple food items, return multiple strings. Follow this format: Food item (include brand if applicable) (string), calories (int), sugar, fat, protein, carbohydrates, vitamin D, calcium, iron, potassium. DO NOT INCLUDE UNITS, ONLY NUMBERS. If no food is detected, respond with 'No food detected'."
                                 },
                                 {
                                     "type": "image_url",
                                     "image_url": {
-                                        "url": f"data:image/jpeg;base64,{base64_image}"
+                                        "url": f"data:image/jpeg;base64,{image_base64}"
                                     }
                                 }
                             ]
@@ -944,49 +1175,27 @@ with content_placeholder.container():
                 }
 
 
-
-
-
-
-
-
                 response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-           
+
+
                 if response.status_code == 200:
                     response_data = response.json()
-                    message_content = response_data['choices'][0]['message']['content']
-                    return message_content
+                    return response_data['choices'][0]['message']['content']
                 else:
-
-
-
-
-                    log_message = "Failed to get response from API: " + response.status_code
-                   
-                    st.markdown("""
-                    <div style="color: black; background-color: #f5b227; padding: 10px; border: 1px solid #ffeeba; border-radius: 5px;">
-                        <strong>Error: """ + log_message + """</strong>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-
-
-
+                    log_message = "Failed to get response from API: " + str(response.status_code)
+                    st.error(log_message)
                     return None
 
 
+            # Send the image to OpenAI API when "Analyze Image" is clicked
+            if st.button("Analyze Image"):
+                st.write(":gray[Analyzing...]")
+                st.session_state["api_response"] = send_image_to_openai(base64_image)
 
 
-            if "photo_saved" not in st.session_state:
-                st.session_state["photo_saved"] = False
-
-
-
-
-               
-            #Start the live camera preview if no photo is taken
-            if not st.session_state["photo_taken"]:
-                live_camera_preview()
+                if st.session_state["api_response"]:
+                    st.write(f":gray[API Response: {st.session_state['api_response']}]")
+                    # Add additional logic here to log the response, update totals, etc.
 
 
 
@@ -995,9 +1204,9 @@ with content_placeholder.container():
 
 
 
-            #If a photo was taken, display and save it
-            if st.session_state["photo_taken"] and not st.session_state["photo_saved"]:
-                st.image(st.session_state["photo"], caption="")
+
+
+                    log_to_file_and_update_totals(st.session_state["api_response"])
 
 
 
@@ -1006,45 +1215,11 @@ with content_placeholder.container():
 
 
 
-                #Save the image with a timestamp
-                timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-                file_name = f'photo_{timestamp}.png'
-           
-                cv2.imwrite(file_name, cv2.cvtColor(st.session_state["photo"], cv2.COLOR_RGB2BGR))
+                    st.session_state["photo_saved"] = True
 
 
 
 
-                log_message = "Photo saved as " + file_name
-
-
-
-
-                st.markdown("""
-                    <div style="color: black; background-color: #d1ffbd; padding: 10px; border: 1px solid #ffeeba; border-radius: 5px;">
-                        <strong>""" + log_message + """</strong>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-
-
-
-                #Send the image to the OpenAI API and display the response
-                if st.button("Analyze Image"):
-                    st.write(":gray[API Response:]")
-                    st.session_state["api_response"] = send_image_to_openai(st.session_state["photo"])
-                    if st.session_state["api_response"]:
-                        st.write(f":gray[{st.session_state.api_response}]")
-
-
-
-
-                        log_to_file_and_update_totals(st.session_state["api_response"])
-
-
-
-
-                        st.session_state["photo_saved"] = True
 
 
 
@@ -1063,8 +1238,16 @@ with content_placeholder.container():
 
 
 
+
+
+
+
     elif st.session_state.page == "Diary":
             st.title("Diary")
+
+
+
+
 
 
 
@@ -1078,11 +1261,19 @@ with content_placeholder.container():
 
 
 
-            #Load calorie log data
+
+
+
+
+            # Load calorie log data
             calorie_data = read_calorie_log()
        
-            #Assume the calorie goal is retrieved from user profile or session state
+            # Assume the calorie goal is retrieved from user profile or session state
             calorie_goal = st.session_state.get("calorie_goal", 2000)
+
+
+
+
 
 
 
@@ -1096,204 +1287,98 @@ with content_placeholder.container():
 
 
 
-            #Plot the calendar with the color-coded days
+
+
+
+
+            # Plot the calendar with the color-coded days
             plot_calendar(calorie_data, calorie_goal)
 
 
 
 
-
-
-
-
+        # For the recipes page with image input
     elif st.session_state.page == "Recipes":
         st.title("Recipes Page")
-            #User selects the type of meal and flavor
-        meal_type = st.selectbox(":gray[Select Meal Type:]", ["Anything", "Snack", "Breakfast", "Lunch", "Dinner"])
-        flavor_type = st.selectbox(":gray[Select Flavor Type:]", ["Anything", "Sweet", "Savory", "Spicy"])
+       
+        # User selects the type of meal and flavor
+        meal_type = st.selectbox("Select Meal Type:", ["Anything", "Snack", "Breakfast", "Lunch", "Dinner"])
+        flavor_type = st.selectbox("Select Flavor Type:", ["Anything", "Sweet", "Savory", "Spicy"])
 
 
+        st.subheader("Take a picture of your ingredients or inside your fridge:")
+       
+        # Use Streamlit's camera_input to take the picture
+        st.session_state["photo"] = st.camera_input("Capture an image of your ingredients")
 
 
-
-
-
-
-        st.subheader(":gray[Take a picture of your ingredients or inside your fridge:]")
-
-
-
-
-
-
-
-
-        #Initialize session state for capturing the photo
-        if "photo_taken" not in st.session_state:
-            st.session_state["photo_taken"] = False
-        if "photo" not in st.session_state:
-            st.session_state["photo"] = None
-
-
-
-
-        #Function to encode the image to base64
-        def encode_image(image):
-            _, buffer = cv2.imencode('.jpg', image)
-            return base64.b64encode(buffer).decode('utf-8')
-
-
-
-
-
-
-
-
-        #Function to open the camera and display the preview
-        def live_camera_preview():
-            cap = cv2.VideoCapture(0)
-            frame_placeholder = st.empty()  #Placeholder for the video stream
-            take_photo_button = st.button("Take Photo")  #Create the "Take Photo" button
-
-
-
-
-
-
-
-
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    st.error("Could not get frame from the camera.")
-                    break
-
-
-
-
-
-
-
-
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame_placeholder.image(frame_rgb, channels="RGB")
-
-
-
-
-
-
-
-
-                if take_photo_button:
-                    st.session_state["photo"] = frame_rgb  #Save the captured frame
-                    st.session_state["photo_taken"] = True
-                    cap.release()
-                    frame_placeholder.empty()  #Clear the live feed
-                    break
-
-
-
-
-
-
-
-
-        #Function to send the image and user inputs to OpenAI for meal suggestions
-        def send_image_to_openai(image, meal_type, flavor_type):
-            base64_image = encode_image(image)
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
-            }
-            prompt = (f"Here is a picture of ingredients. Suggest a meal for {meal_type} with a {flavor_type} flavor. "
-                    "Output the response in this format:\n"
-                    ":gray[Meal Name: [name]]\n\n"
-                    ":gray[Ingredients:]\n- [ingredient1]\n- [ingredient2]\n...\n"
-                    ":gray[Instructions:]\n1. [instruction1]\n2. [instruction2]\n...\n"
-                    "Do not include anything else.")
-            payload = {
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {"role": "user", "content": prompt},
-                    {"role": "user", "content": f"data:image/jpeg;base64,{base64_image}"}
-                ],
-                "max_tokens": 500
-            }
-
-
-
-
-
-
-
-
-            response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-            if response.status_code == 200:
-                response_data = response.json()
-                return response_data['choices'][0]['message']['content']
-            else:
-                st.error(f"Failed to get response from API: {response.status_code}")
-                return None
-
-
-
-
-
-
-
-
-        #Display the camera preview if no photo is taken
-        if not st.session_state["photo_taken"]:
-            live_camera_preview()
-
-
-
-
-
-
-
-
-        #If a photo was taken, display and save it
-        if st.session_state["photo_taken"]:
+        if st.session_state["photo"]:
+            # Display the captured image
             st.image(st.session_state["photo"], caption="Captured Ingredients")
 
 
+            # Since OpenAI's GPT models don't support image input, skip sending the image
+            def send_prompt_to_openai(meal_type, flavor_type):
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {st.secrets['auth_key2']}"
+                }
 
 
+                prompt = (f"Suggest a meal for {meal_type} with a {flavor_type} flavor. "
+                        "Give the recipe in this format:\n"
+                        "Meal Name: [name]\n\n"
+                        "Ingredients:\n- [ingredient1]\n- [ingredient2]\n...\n"
+                        "Instructions:\n1. [instruction1]\n2. [instruction2]\n"
+                        "Do not include anything else.")
 
 
+                payload = {
+                    "model": "gpt-4",
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 500
+                }
 
 
-            #Send the image and selections to OpenAI when "Get Recipe" is clicked
+                # Send the request to the API
+                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+
+
+                # Check for a successful response
+                if response.status_code == 200:
+                    response_data = response.json()
+                    return response_data['choices'][0]['message']['content']
+                else:
+                    st.error(f"Failed to get response from API: {response.status_code}")
+                    return None
+
+
+            # When a photo is captured, prompt the model to suggest a recipe (without sending the image)
             if st.button("Get Recipe"):
-                api_response = send_image_to_openai(st.session_state["photo"], meal_type, flavor_type)
+                api_response = send_prompt_to_openai(meal_type, flavor_type)
+
+
                 if api_response:
-                    #Display the suggested meal
-                    st.write("###Suggested Meal")
-                    st.write(api_response)  #Display the entire output from the API
+                    # Display the suggested meal
+                    st.write("### Suggested Meal")
+                    st.write(api_response)
 
 
-
-
-
-
-
-
-                    #Save the recipe to the text file
+                    # Save the recipe if needed
                     if st.button("Save Recipe"):
                         save_recipe(api_response)
 
 
-
-
-
-
-
-
-        #Display saved recipes dropdown
-        st.write("###Saved Recipes")
+        # Display saved recipes dropdown
+        st.write("### Saved Recipes")
         display_saved_recipes()
+
+
+
+
+   
 
 
 
@@ -1309,17 +1394,29 @@ with content_placeholder.container():
 
 
 
+
+
+
+
             st.write(":gray[Set your personal details here.]")
 
 
 
 
-            #Input for age, height, weight, and gender
+
+
+
+
+            # Input for age, height, weight, and gender
             age = st.number_input(":gray[Age]", min_value=1, max_value=120, value=25)
             height = st.number_input(":gray[Height (in cm)]", min_value=50, max_value=250, value=170)
             weight = st.number_input(":gray[Weight (in kg)]", min_value=20, max_value=300, value=70)
             gender = st.selectbox(":gray[Sex]", ["Male", "Female"])
             activity_level = st.selectbox(":gray[Activity Level]", ["Sedentary", "Lightly active", "Moderately active", "Very active", "Super active"])
+
+
+
+
 
 
 
@@ -1331,15 +1428,24 @@ with content_placeholder.container():
 
 
 
-            #Save Profile button
+
+
+
+
+            # Save Profile button
             if st.button("Save Profile"):
                 try:
-                    user_id = user['localId']  #Get user ID
+                    user_id = user['localId']  # Get user ID
+                    # st.write(f":blue[{user_id}]")
 
 
 
 
-                    #Update profile information in Firebase (replacing old data)
+
+
+
+
+                    # Update profile information in Firebase (replacing old data)
                     profile_data = {
                         "age": age,
                         "height": height,
@@ -1352,20 +1458,44 @@ with content_placeholder.container():
 
 
 
-                    #Send data to Firebase
+
+
+
+
+                    # Log the data being sent
+                    # st.write(":blue[Profile data being sent to Firebase:]", profile_data)
+                   
+                    # Send data to Firebase
                     result = db.child(user_id).child("profile").set(profile_data)
 
 
 
 
 
-                    #Store profile data in session state for local use
+
+
+
+                    # Log the result from Firebase
+                    # st.write("Firebase response:", result)
+
+
+
+
+
+
+
+
+                    # Store profile data in session state for local use
                     st.session_state["age"] = age
                     st.session_state["height"] = height
                     st.session_state["weight"] = weight
                     st.session_state["gender"] = gender
                     st.session_state["activity_level"] = activity_level
                     st.session_state["calorie_goal"] = calorie_goal
+
+
+
+
 
 
 
@@ -1379,9 +1509,16 @@ with content_placeholder.container():
 
 
 
+
+
+
+
                 except Exception as e:
                     st.markdown(f"""
                     <div style="color: black; background-color: #f5b227; padding: 10px; border: 1px solid #ffeeba; border-radius: 5px;">
                         <strong>Make sure to log in!</strong>
                     </div>
                     """, unsafe_allow_html=True)
+
+
+
