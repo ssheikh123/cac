@@ -825,7 +825,7 @@ with content_placeholder.container():
 
             #Function to open the camera and display the preview
             def live_camera_preview():
-                cap = cv2.VideoCapture(0)
+                cap = cv2.VideoCapture(1)
                 frame_placeholder = st.empty()  #Placeholder for the video stream
 
 
