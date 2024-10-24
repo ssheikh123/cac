@@ -897,6 +897,7 @@ with content_placeholder.container():
            
 
     elif st.session_state.page == "Profile":
+            st.write("For best experience, ensure dark mode is on. (On top bar > click ⋮ > Settings > Choose app theme, colors and fonts > Dark mode)")
             st.title("Profile Page")
             if "handle" in st.session_state:
                 st.subheader(f"Welcome, {st.session_state['handle']}!")
