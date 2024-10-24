@@ -770,7 +770,7 @@ with content_placeholder.container():
     elif st.session_state.page == "Camera":
         st.subheader(":gray[Take a picture of your food:]")
 
-        webrtc_ctx = webrtc_streamer(key="example", video_processor_factory=VideoProcessor, media_stream_constraints={"video": True, "audio": False})
+        webrtc_ctx = webrtc_streamer(key="example", video_processor_factory=VideoProcessor, media_stream_constraints={"video": True, "audio": False}, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
 
         # Capture a photo when the button is clicked
         if st.button("Capture Photo"):
@@ -852,7 +852,7 @@ with content_placeholder.container():
 
         st.subheader("Take a picture of your ingredients or inside your fridge:")
        
-        webrtc_ctx = webrtc_streamer(key="recipes-camera", video_processor_factory=VideoProcessor, media_stream_constraints={"video": True, "audio": False})
+        webrtc_ctx = webrtc_streamer(key="recipes-camera", video_processor_factory=VideoProcessor, media_stream_constraints={"video": True, "audio": False}, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
         
         # Capture a photo when the button is clicked
         if st.button("Capture Photo"):
