@@ -15,22 +15,8 @@ from streamlit_extras.let_it_rain import rain
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 with open("style.css") as css:
     st.markdown( f'<style>{css.read()}</style>' , unsafe_allow_html= True)
-
 
 
 
@@ -41,11 +27,6 @@ def emojis():
         falling_speed=10,
         animation_length=3,
     )
-
-
-
-
-
 
 
 
@@ -62,32 +43,13 @@ firebaseConfig = {
 }
 
 
-
-
-
-
-
-
 # Firebase Authentication
 firebase = pyrebase.initialize_app(firebaseConfig)
 auth = firebase.auth()
 
 
-
-
-
-
-
-
 if 'daily_schedule' not in st.session_state:
     st.session_state.daily_schedule = []
-
-
-
-
-
-
-
 
 # Database
 db = firebase.database()
@@ -95,36 +57,10 @@ storage = firebase.storage()
 st.sidebar.image("https://i.imgur.com/QagqWUy.png", width=150)
 
 
-
-
-
-
-
-
 is_logged_in = False
-
-
-
-
-
-
-
 
 # Authentication
 #choice = st.sidebar.selectbox('Login/Signup', ['Login', 'Sign up'])
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -134,20 +70,10 @@ def set_firebase_state(user_id, key, value):
 
 
 
-
-
-
-
-
 # Function to get a value from Firebase
 def get_firebase_state(user_id, key, default_value=None):
     result = db.child(user_id).child("app_state").child(key).get().val()
     return result if result else default_value
-
-
-
-
-
 
 
 
@@ -160,14 +86,10 @@ def switch_page(new_page):
     content_placeholder.empty()  # Clear any previous content
 
 
-
-
 if not is_logged_in:
     # Show the login/signup form inside an expander
     with st.sidebar.expander("Login/Signup", expanded=True):
         choice = st.selectbox('', ['Login', 'Sign up'])
-
-
 
 
         # Obtain User Input for email and password
@@ -175,13 +97,9 @@ if not is_logged_in:
         password = st.text_input('Password', type='password')
 
 
-
-
         if choice == 'Sign up':
             handle = st.text_input('Username', value='Default')
             submit = st.button('Create my account!')
-
-
 
 
             if submit:
@@ -194,7 +112,6 @@ if not is_logged_in:
                     emojis()
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
-
 
 
 
@@ -229,18 +146,7 @@ else:
 
 
 
-
-
-
-
-
 content_placeholder = st.empty()
-
-
-
-
-
-
 
 
 
@@ -266,19 +172,8 @@ else:
 
 
 
-
-
-
-
-
 # OpenAI API Key
 api_key = st.secrets["auth_key2"]
-
-
-
-
-
-
 
 
 if "page" not in st.session_state:
@@ -286,35 +181,15 @@ if "page" not in st.session_state:
 if "image_analyzed" not in st.session_state:
     st.session_state["image_analyzed"] = False
 
-
-
-
-
-
-
-
     #FOR SAVING RECIPES:
 # Define the file path for saving recipes
 RECIPE_FILE = "saved_recipes.txt"
-
-
-
-
-
-
-
 
 # Ensure the file exists or create it if it doesn't
 def initialize_recipe_file():
     if not os.path.exists(RECIPE_FILE):
         with open(RECIPE_FILE, "w") as f:
             json.dump({}, f)  # Initialize with an empty dictionary
-
-
-
-
-
-
 
 
 # Function to load saved recipes from the text file
@@ -325,23 +200,10 @@ def load_saved_recipes():
         st.session_state["saved_recipes"] = saved_recipes
 
 
-
-
-
-
-
-
 # Function to save the current state of recipes to the text file
 def save_recipe_to_file():
     with open(RECIPE_FILE, "w") as f:
         json.dump(st.session_state["saved_recipes"], f)
-
-
-
-
-
-
-
 
 # Function to add a new recipe to the saved list
 def save_recipe(api_response):
@@ -357,12 +219,6 @@ def save_recipe(api_response):
     save_recipe_to_file()
 
 
-
-
-
-
-
-
 # Function to display saved recipes as a dropdown
 def display_saved_recipes():
     if st.session_state["saved_recipes"]:
@@ -373,21 +229,9 @@ def display_saved_recipes():
         st.write(":gray[No saved recipes found.]")
 
 
-
-
-
-
-
-
 # Initialize session state for tracking saved recipes
 if "saved_recipes" not in st.session_state:
     load_saved_recipes()  # Load recipes if they aren't already in session state
-
-
-
-
-
-
 
 
 def calculate_bmr(age, height, weight, gender, activity_level):
@@ -408,29 +252,12 @@ def calculate_bmr(age, height, weight, gender, activity_level):
     }
 
 
-
-
-
-
-
-
     return bmr * activity_multipliers.get(activity_level, 1.2)  # Default to Sedentary if activity level is not found
-
-
-
-
-
 
 
 
 def calculate_protein(weight):
     return weight * 0.85  # Return protein in grams
-
-
-
-
-
-
 
 
 # Function to send food item to GPT and return nutrition info
@@ -448,30 +275,13 @@ def send_food_to_gpt(food_item):
 
 
 
-
-
-
-
-
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
 
 
-
-
-
-
-
-
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-
-
-
-
-
-
 
 
     if response.status_code == 200:
@@ -489,24 +299,11 @@ def send_food_to_gpt(food_item):
         return None
 
 
-
-
-
-
-
-
 # Function to log to file and update totals
 def log_to_file_and_update_totals(api_response):
    
     today = datetime.now().strftime('%Y-%m-%d')
     filename = f"nutrition_log_{today}.txt"
-
-
-
-
-
-
-
 
     # Initialize daily totals in session state if not present
     if "daily_totals" not in st.session_state:
@@ -516,41 +313,16 @@ def log_to_file_and_update_totals(api_response):
             'iron': 0, 'potassium': 0
         }
 
-
-
-
-
-
-
-
     totals = st.session_state["daily_totals"]
-
-
-
-
-
-
-
 
     # Clear previous API response to avoid duplicate logging
     food_items = [item for item in api_response.split('\n') if item.strip()]
-
-
-
-
-
-
 
 
     # Open the file in append mode and log each food item
     with open(filename, 'a') as file:
         for item in food_items:
             file.write(item + "\n")  # Log the item in the file
-
-
-
-
-
 
 
 
@@ -563,49 +335,19 @@ def log_to_file_and_update_totals(api_response):
 
 
 
-
-
-
-
-
                     sugar = float(parts[2].strip('g'))  # Remove 'g' from the sugar value
                     totals['sugar'] += sugar
 
-
-
-
-
-
-
-
                     fat = float(parts[3].strip('g'))  # Remove 'g' from the fat value
                     totals['fat'] += fat
-
-
-
-
-
-
 
 
                     protein = float(parts[4].strip('g'))  # Remove 'g' from the protein value
                     totals['protein'] += protein
 
 
-
-
-
-
-
-
                     carbohydrates = float(parts[5].strip('g'))  # Remove 'g' from the carbs value
                     totals['carbohydrates'] += carbohydrates
-
-
-
-
-
-
 
 
                     # Check for optional nutritional values, stripping units where necessary
@@ -614,18 +356,8 @@ def log_to_file_and_update_totals(api_response):
 
 
 
-
-
-
-
-
                     calcium = float(parts[7].strip('mg')) if len(parts) > 7 else 0
                     totals['calcium'] += calcium
-
-
-
-
-
 
 
 
@@ -634,19 +366,8 @@ def log_to_file_and_update_totals(api_response):
 
 
 
-
-
-
-
-
                     potassium = float(parts[9].strip('mg')) if len(parts) > 9 else 0
                     totals['potassium'] += potassium
-
-
-
-
-
-
 
 
                     # Append the food item and its macros to the daily schedule
@@ -662,12 +383,6 @@ def log_to_file_and_update_totals(api_response):
                     log_message = f"Error parsing nutritional data from: {item}."
 
 
-
-
-
-
-
-
                     st.markdown(f"""
                     <div style="color: black; background-color: #f5b227; padding: 10px; border: 1px solid #ffeeba; border-radius: 5px;">
                         <strong>Error: {log_message}</strong>
@@ -675,19 +390,8 @@ def log_to_file_and_update_totals(api_response):
                     """, unsafe_allow_html=True)
 
 
-
-
-
-
-
-
             else:
                 log_message = f"Incomplete data for item: {item}"
-
-
-
-
-
 
 
 
@@ -698,19 +402,8 @@ def log_to_file_and_update_totals(api_response):
                 """, unsafe_allow_html=True)
 
 
-
-
-
-
-
-
 # Path to the calorie log file
 calorie_file_path = "calorie_log.txt"
-
-
-
-
-
 
 
 
@@ -729,19 +422,10 @@ def read_calorie_log():
 
 
 
-
-
-
-
 # Function to write daily calories at the end of the day
 def write_calorie_log(date, calories):
     with open(calorie_file_path, 'a') as f:
         f.write(f"{date}: {calories}\n")
-
-
-
-
-
 
 
 
@@ -751,22 +435,11 @@ def update_daily_calories(calories):
 
 
 
-
-
-
-
-
-# Function to generate a calendar heatmap
 # Function to generate a calendar heatmap
 def plot_calendar(calorie_data, calorie_goal):
      # Get current month and year
     today = datetime.today()
     year, month = today.year, today.month
-
-
-
-
-
 
 
 
@@ -778,20 +451,10 @@ def plot_calendar(calorie_data, calorie_goal):
 
 
 
-
-
-
-
-
     # Prepare a figure and axis for the calendar plot
     fig, ax = plt.subplots(figsize=(10, 7))
     fig.patch.set_facecolor('#ffe6bfff')
     ax.set_title(f"{month_name} {year}", fontsize=20, pad=20)
-
-
-
-
-
 
 
 
@@ -812,11 +475,6 @@ def plot_calendar(calorie_data, calorie_goal):
 
 
 
-
-
-
-
-
     # Create the calendar plot
     for week_idx, week in enumerate(cal):
         for day_idx, day in enumerate(week):
@@ -833,12 +491,6 @@ def plot_calendar(calorie_data, calorie_goal):
                 text = str(day)
 
 
-
-
-
-
-
-
             # Calculate the position of the box for the day
             x = day_idx
             y = -week_idx
@@ -846,17 +498,8 @@ def plot_calendar(calorie_data, calorie_goal):
 
 
 
-
-
-
-
-
             # Add the text (day number) in the middle of the box
             ax.text(x + 0.5, y - 0.5, text, ha='center', va='center', fontsize=12)
-
-
-
-
 
 
 
@@ -867,19 +510,9 @@ def plot_calendar(calorie_data, calorie_goal):
 
 
 
-
-
-
-
-
     # Hide axis ticks and labels
     ax.set_xticks([])
     ax.set_yticks([])
-
-
-
-
-
 
 
 
@@ -891,11 +524,6 @@ def plot_donut_chart(calories_consumed, calorie_goal):
 
 
 
-
-
-
-
-
     # Data for the chart
     labels = [f'Consumed Calories\n({calories_consumed} kcal)',
               f'Remaining Calories\n({remaining_calories} kcal)']
@@ -903,22 +531,9 @@ def plot_donut_chart(calories_consumed, calorie_goal):
     colors = ['#f9ae36ff', '#555555']
     explode = (0.1, 0)  # only "explode" the first slice
 
-
-
-
-
-
-
-
     # Create the donut chart
     plt.figure(figsize=(6, 6))
     plt.pie(sizes, colors=colors, labels=labels, autopct='%1.1f%%', startangle=90, explode=explode, pctdistance=0.85)
-
-
-
-
-
-
 
 
     # Draw a circle at the center of the pie to make it a donut
@@ -926,39 +541,13 @@ def plot_donut_chart(calories_consumed, calorie_goal):
     fig = plt.gcf()
     fig.gca().add_artist(centre_circle)
 
-
-
-
-
-
-
-
     fig.patch.set_facecolor('#ffe6bfff')
     # Adding title
     plt.title('Daily Calories Intake')
 
 
-
-
-
-
-
-
     # Display the chart
     st.pyplot(fig)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -970,32 +559,11 @@ if "daily_totals" not in st.session_state:
     }
 
 
-
-
-
-
-
-
 # Check which page to display
 with content_placeholder.container():
     if st.session_state.page == "Dashboard":
             st.title("Nutrition Dashboard")
-           
-
-
-
-
-
-
-           
-
-
-
-
-
-
-
-
+         
             # Display the calorie ring
             st.header(f"{st.session_state['handle']}, here's your caloric intake today:")
             calorie_goal = st.session_state.get('calorie_goal', 2000)
@@ -1007,19 +575,8 @@ with content_placeholder.container():
                     st.session_state["calorie_goal"] = calorie_goal
             plot_donut_chart(st.session_state['daily_totals']['calories'], calorie_goal)
 
-
-
-
-
-
-
-
             # Daily Schedule Section
             st.header("Log Food")
-
-
-   
-
 
 
 
@@ -1027,8 +584,6 @@ with content_placeholder.container():
             food_item = st.text_input(":gray[Food Item]")
             time_consumed = st.time_input(":gray[What time did you consume this?]")
            
-
-
 
 
             if st.button("Log Food Item"):
@@ -1049,10 +604,6 @@ with content_placeholder.container():
                         log_message = "Logged: " + food_item + " at " + time_consumed.strftime('%H:%M')
                    
                
-
-
-
-
                        
                 else:
                     # CSS to style the expander headers and content properly
@@ -1080,10 +631,6 @@ with content_placeholder.container():
                         </style>
                         """, unsafe_allow_html=True)
                
-
-
-
-
             st.header("What I Ate Today:")
             st.write(":gray[(Click food item to expand nutritional information.)]")
             if st.session_state.daily_schedule:
@@ -1091,12 +638,6 @@ with content_placeholder.container():
                     food_name = item['food_item']
                     food_time = item['time']
                     macros = item.get('macros', '')  # Get macros if available
-
-
-
-
-
-
 
 
                     # Create an expander for each food item to show macros on click
