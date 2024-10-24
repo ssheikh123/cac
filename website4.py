@@ -1,3 +1,4 @@
+import io
 import json
 import time
 import streamlit as st
@@ -12,6 +13,7 @@ import matplotlib.pyplot as plt
 import pyrebase
 import calendar
 from streamlit_extras.let_it_rain import rain
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
 
 
@@ -270,8 +272,9 @@ def send_food_to_gpt(food_item):
                 "content": f"Here is a food: {food_item}. Return only a string of comma-separated values based on an approximate serving size estimate. DO NOT INCLUDE UNITS. Avoid special characters. Format: Food item, calories, sugar, fat, protein, carbohydrates, vitamin D, calcium, iron, potassium."
             }
         ],
-        "max_tokens": 150
+        "max_tokens": 500
     }
+
 
 
 
@@ -550,6 +553,24 @@ def plot_donut_chart(calories_consumed, calorie_goal):
     st.pyplot(fig)
 
 
+# Streamlit WebRTC settings
+RTC_CONFIGURATION = {
+    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+}
+
+# Initialize session state for tracking totals and responses
+if "photo" not in st.session_state:
+    st.session_state["photo"] = None
+if "api_response" not in st.session_state:
+    st.session_state["api_response"] = None
+if "stream_active" not in st.session_state:
+    st.session_state["stream_active"] = True
+if "base64_image" not in st.session_state:
+    st.session_state["base64_image"] = None
+if "photo_captured" not in st.session_state:
+    st.session_state["photo_captured"] = False
+if "recipe_photo_captured" not in st.session_state:
+    st.session_state["recipe_photo_captured"] = False
 
 if "daily_totals" not in st.session_state:
     st.session_state["daily_totals"] = {
@@ -558,6 +579,101 @@ if "daily_totals" not in st.session_state:
         'iron': 0, 'potassium': 0
     }
 
+class VideoProcessor(VideoTransformerBase):
+    def __init__(self):
+        self.frame = None
+
+    def recv(self, frame):
+        self.frame = frame.to_ndarray(format="rgb24")
+        return frame
+
+def capture_photo():
+    """Capture a frame from the video stream."""
+    webrtc_ctx = webrtc_streamer(key="camera", video_processor_factory=VideoProcessor)
+    
+    if webrtc_ctx.video_processor and webrtc_ctx.video_processor.frame is not None:
+        st.session_state["photo"] = webrtc_ctx.video_processor.frame
+
+# Function to encode the image to base64
+def encode_image(image):
+    """Encode the captured image to base64."""
+    # Convert to RGB for proper color representation in the output
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    _, buffer = cv2.imencode('.jpg', image_rgb)
+    return base64.b64encode(buffer).decode('utf-8')
+
+
+# Function to send the image to the OpenAI API for analysis
+def send_image_to_openai(image_base64):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {st.secrets['auth_key2']}"
+    }
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Here is a picture of food. Return a string of comma-separated values based on an approximate serving size estimate. If there are multiple food items, return multiple strings. Follow this format: Food item (include brand if applicable) (string), calories (int), sugar, fat, protein, carbohydrates, vitamin D, calcium, iron, potassium. DO NOT INCLUDE UNITS, ONLY NUMBERS. If no food is detected, respond with 'No food detected'."
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{image_base64}"
+                        }
+                    }
+                ]
+            }
+        ],
+        "max_tokens": 300
+    }
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+    if response.status_code == 200:
+        response_data = response.json()
+        return response_data['choices'][0]['message']['content']
+    else:
+        st.error("Failed to get response from API: " + str(response.status_code))
+        return None
+
+# Function to convert OpenCV image (BGR) to PIL image (RGB)
+def convert_to_pil_image(cv2_image):
+    # Convert to PIL Image
+    pil_image = Image.fromarray(cv2_image)
+    return pil_image
+
+# Function to send the image and user inputs to OpenAI for meal suggestions
+def send_image_to_openai_for_recipes(base64_image, meal_type, flavor_type):
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+    prompt = (f"Here is a picture of ingredients. Suggest a meal for {meal_type} with a {flavor_type} flavor using the ingredients. You can use other ingredients not in the picture, but make sure to use most, if not all, the ingredients in the picture. "
+            "Output the response in this format:\n"
+            "Meal Name: [name]\n"
+            "Ingredients:\n- [ingredient1]\n- [ingredient2]\n...\n"
+            "Instructions:\n1. [instruction1]\n2. [instruction2]\n...\n"
+            "Do not include anything else.")
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": [
+            {"role": "user", "content": prompt},
+            {"role": "user", "content": f"data:image/jpeg;base64,{base64_image}"}
+        ],
+        "max_tokens": 500
+    }
+
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+
+    if response.status_code == 200:
+        response_data = response.json()
+        return response_data['choices'][0]['message']['content']
+    else:
+        st.error("Failed to get response from API: " + str(response.status_code))
+        return None
 
 # Check which page to display
 with content_placeholder.container():
@@ -650,148 +766,60 @@ with content_placeholder.container():
             else:
                 st.write(":gray[No food items logged for today.]")
 
-
-
-
-
-
-
-
     # For the camera tab        
     elif st.session_state.page == "Camera":
         st.subheader(":gray[Take a picture of your food:]")
-       
-        # Initialize session state for tracking totals and responses
-        if "photo" not in st.session_state:
-            st.session_state["photo"] = None
-        if "api_response" not in st.session_state:
-            st.session_state["api_response"] = None
 
+        webrtc_ctx = webrtc_streamer(key="example", video_processor_factory=VideoProcessor, media_stream_constraints={"video": True, "audio": False})
 
-        # Use Streamlit's built-in camera input
-        st.session_state["photo"] = st.camera_input("Capture an image")
+        # Capture a photo when the button is clicked
+        if st.button("Capture Photo"):
+            if webrtc_ctx.video_processor and webrtc_ctx.video_processor.frame is not None:
+                    
+                st.session_state["photo"] = webrtc_ctx.video_processor.frame
+                st.image(st.session_state["photo"], caption="Captured Image")
 
+                # Convert the OpenCV frame to a PIL image
+                pil_image = convert_to_pil_image(webrtc_ctx.video_processor.frame) 
+                
+                # Convert the image to a base64 string for processing
+                buffered = io.BytesIO()
+                pil_image.save(buffered, format="JPEG")
+                base64_image = base64.b64encode(buffered.getvalue()).decode("utf-8")
+                st.session_state["base64_image"] = base64_image
 
-        # Check if a photo was taken
-        if st.session_state["photo"]:
-            st.image(st.session_state["photo"], caption="Captured Image")
+                st.session_state["photo_captured"] = True
 
-
-            # Convert the image to bytes and encode it to base64
-            def encode_image(image):
-                return base64.b64encode(image.read()).decode('utf-8')
-
-
-            base64_image = encode_image(st.session_state["photo"])
-
-
-            # Function to send the image to the OpenAI API for analysis
-            def send_image_to_openai(image_base64):
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {st.secrets['auth_key2']}"
-                }
-
-
-                payload = {
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": "Here is a picture of food. Return a string of comma-separated values based on an approximate serving size estimate. If there are multiple food items, return multiple strings. Follow this format: Food item (include brand if applicable) (string), calories (int), sugar, fat, protein, carbohydrates, vitamin D, calcium, iron, potassium. DO NOT INCLUDE UNITS, ONLY NUMBERS. If no food is detected, respond with 'No food detected'."
-                                },
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/jpeg;base64,{image_base64}"
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    "max_tokens": 300
-                }
-
-
-                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-
-
-                if response.status_code == 200:
-                    response_data = response.json()
-                    return response_data['choices'][0]['message']['content']
-                else:
-                    log_message = "Failed to get response from API: " + str(response.status_code)
-                    st.error(log_message)
-                    return None
-
-
-            # Send the image to OpenAI API when "Analyze Image" is clicked
+        # Only show the "Analyze Image" button if a photo has been captured
+        if st.session_state.get("photo_captured"):
             if st.button("Analyze Image"):
                 st.write(":gray[Analyzing...]")
-                st.session_state["api_response"] = send_image_to_openai(base64_image)
-
+                st.session_state["api_response"] = send_image_to_openai(st.session_state["base64_image"])
 
                 if st.session_state["api_response"]:
                     st.write(f":gray[API Response: {st.session_state['api_response']}]")
-                    # Add additional logic here to log the response, update totals, etc.
-
-
-
-
-
-
-
-
-
-
+                    # Log the response and update totals
                     log_to_file_and_update_totals(st.session_state["api_response"])
-
-
-
-
-
-
-
-
                     st.session_state["photo_saved"] = True
+                else:
+                    st.write(":gray[No API response.]")
 
-
-
-
-
-
-
-
-                if st.session_state["return_to_camera"]:
-                    if st.button("Return to Camera"):
-                        st.session_state["photo_taken"] = False
-                        st.session_state["photo"] = None
-                        st.session_state["take_photo_clicked"] = False
-                        st.session_state["return_to_camera"] = False
-                        st.session_state["api_response"] = None
-                        st.session_state["photo_saved"] = False
-                        st.cache_data.clear()
-                        st.rerun()
-
-
-
-
-
-
+            
+            if st.button("Return to Camera"):
+                st.session_state["photo_taken"] = False
+                st.session_state["photo"] = None
+                st.session_state["take_photo_clicked"] = False
+                st.session_state["return_to_camera"] = False
+                st.session_state["api_response"] = None
+                st.session_state["photo_saved"] = False
+                st.session_state["photo_captured"] = False
+                st.session_state["base64_image"] = None
+                st.cache_data.clear()
+                st.rerun()
 
 
     elif st.session_state.page == "Diary":
             st.title("Diary")
-
-
-
-
-
-
-
 
             st.markdown("""
             <div style="display: flex; align-items: center;">
@@ -799,25 +827,11 @@ with content_placeholder.container():
             </div>
             """, unsafe_allow_html=True)
 
-
-
-
-
-
-
-
             # Load calorie log data
             calorie_data = read_calorie_log()
        
             # Assume the calorie goal is retrieved from user profile or session state
             calorie_goal = st.session_state.get("calorie_goal", 2000)
-
-
-
-
-
-
-
 
             st.markdown(f"""
             <div style="display: flex; align-items: center;">
@@ -825,106 +839,63 @@ with content_placeholder.container():
             </div>
             """, unsafe_allow_html=True)
 
-
-
-
-
-
-
-
             # Plot the calendar with the color-coded days
             plot_calendar(calorie_data, calorie_goal)
 
-
-
-
-        # For the recipes page with image input
+    # For the recipes page with image input
     elif st.session_state.page == "Recipes":
-        st.title("Recipes Page")
+        st.title("Recipes")
        
         # User selects the type of meal and flavor
         meal_type = st.selectbox("Select Meal Type:", ["Anything", "Snack", "Breakfast", "Lunch", "Dinner"])
         flavor_type = st.selectbox("Select Flavor Type:", ["Anything", "Sweet", "Savory", "Spicy"])
 
-
         st.subheader("Take a picture of your ingredients or inside your fridge:")
        
-        # Use Streamlit's camera_input to take the picture
-        st.session_state["photo"] = st.camera_input("Capture an image of your ingredients")
+        webrtc_ctx = webrtc_streamer(key="recipes-camera", video_processor_factory=VideoProcessor, media_stream_constraints={"video": True, "audio": False})
+        
+        # Capture a photo when the button is clicked
+        if st.button("Capture Photo"):
+            if webrtc_ctx.video_processor and webrtc_ctx.video_processor.frame is not None:
+                # Store the captured frame in session state
+                st.session_state["photo"] = webrtc_ctx.video_processor.frame
+                st.image(st.session_state["photo"], caption="Captured Ingredients")
 
+                # Convert the OpenCV frame to a PIL image
+                pil_image = convert_to_pil_image(webrtc_ctx.video_processor.frame)
 
-        if st.session_state["photo"]:
-            # Display the captured image
-            st.image(st.session_state["photo"], caption="Captured Ingredients")
+                # Convert the image to a base64 string for processing
+                buffered = io.BytesIO()
+                pil_image.save(buffered, format="JPEG")
+                base64_image = base64.b64encode(buffered.getvalue()).decode("utf-8")
+                st.session_state["base64_image_recipe"] = base64_image
 
+                st.session_state["recipe_photo_captured"] = True
 
-            # Since OpenAI's GPT models don't support image input, skip sending the image
-            def send_prompt_to_openai(meal_type, flavor_type):
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {st.secrets['auth_key2']}"
-                }
-
-
-                prompt = (f"Suggest a meal for {meal_type} with a {flavor_type} flavor. "
-                        "Give the recipe in this format:\n"
-                        "Meal Name: [name]\n\n"
-                        "Ingredients:\n- [ingredient1]\n- [ingredient2]\n...\n"
-                        "Instructions:\n1. [instruction1]\n2. [instruction2]\n"
-                        "Do not include anything else.")
-
-
-                payload = {
-                    "model": "gpt-4",
-                    "messages": [
-                        {"role": "user", "content": prompt}
-                    ],
-                    "max_tokens": 500
-                }
-
-
-                # Send the request to the API
-                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-
-
-                # Check for a successful response
-                if response.status_code == 200:
-                    response_data = response.json()
-                    return response_data['choices'][0]['message']['content']
-                else:
-                    st.error(f"Failed to get response from API: {response.status_code}")
-                    return None
-
-
-            # When a photo is captured, prompt the model to suggest a recipe (without sending the image)
+        # Only show the "Get Recipe" button if a photo has been captured
+        if st.session_state.get("recipe_photo_captured"):
             if st.button("Get Recipe"):
-                api_response = send_prompt_to_openai(meal_type, flavor_type)
+                st.write(":gray[Analyzing ingredients and generating recipe...]")
 
+                # Send the captured image and user inputs to OpenAI for meal suggestions
+                api_response = send_image_to_openai_for_recipes(st.session_state["base64_image_recipe"], meal_type, flavor_type)
 
                 if api_response:
-                    # Display the suggested meal
                     st.write("### Suggested Meal")
                     st.write(api_response)
-
 
                     # Save the recipe if needed
                     if st.button("Save Recipe"):
                         save_recipe(api_response)
+                else:
+                    st.write(":gray[No API response.]")
 
 
         # Display saved recipes dropdown
         st.write("### Saved Recipes")
         display_saved_recipes()
-
-
-
-
-   
-
-
-
-
            
+
     elif st.session_state.page == "Profile":
             st.title("Profile Page")
             if "handle" in st.session_state:
@@ -932,21 +903,7 @@ with content_placeholder.container():
             else:
                 st.subheader("Welcome!")
 
-
-
-
-
-
-
-
             st.write(":gray[Set your personal details here.]")
-
-
-
-
-
-
-
 
             # Input for age, height, weight, and gender
             age = st.number_input(":gray[Age]", min_value=1, max_value=120, value=25)
